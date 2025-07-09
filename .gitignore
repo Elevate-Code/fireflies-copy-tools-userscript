@@ -1,0 +1,2 @@
+# Ignore local files and LLM context in the temp directory
+/temp

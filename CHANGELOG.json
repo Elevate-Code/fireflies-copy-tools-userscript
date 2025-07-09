@@ -1,0 +1,13 @@
+{
+  "agent_rules": "When updating, first check for an existing entry with the same category and today's date. If one is found, append new changes to its 'changes' array. Otherwise, create a new object at the top of the 'changelog' array. Each object requires a 'category', a 'date' (YYYY-MM-DD), and a 'changes' array with descriptive, full-sentence strings. Use 'General' category for project-wide or uncategorized changes.",
+  "categories": ["General", "EXAMPLE"],
+  "changelog": [
+    {
+      "category": "EXAMPLE",
+      "date": "2024-01-01",
+      "changes": [
+        "PLACEHOLDER EXAMPLE"
+      ]
+    }
+  ]
+}
