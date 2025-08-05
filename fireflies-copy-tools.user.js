@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fireflies Copy Transcript & Share Link
 // @namespace    https://github.com/Elevate-Code
-// @version      1.0.0
+// @version      1.0.1
 // @description  Adds a "Copy Transcript" button to Fireflies.ai, allowing one-click copying of the full transcript in a clean, readable format.
 // @author       Elevate Code (Dimitri Sudomoin)
 // @match        https://app.fireflies.ai/*
@@ -105,7 +105,7 @@
         return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 
-    function formatTranscript(meetingNote) {
+    function formatTranscript(meetingNote, meetingUrl) {
         if (!meetingNote || !meetingNote.captions || !meetingNote.speakerMeta) {
             console.error(`${LOG_PREFIX} Invalid data provided to formatTranscript.`);
             return "Error: Could not format transcript due to missing data.";
@@ -118,6 +118,15 @@
             header = title;
             if (date) {
                 header += ` | ${date}`;
+            }
+        }
+
+        if (meetingUrl) {
+            const cleanUrl = meetingUrl.split('?')[0];
+            if (header) {
+                header += `\n${cleanUrl}`;
+            } else {
+                header = cleanUrl;
             }
         }
 
@@ -186,7 +195,7 @@
         }
     }
 
-    function fetchAndCopyTranscriptData(meetingNoteId, token, refreshTok) {
+    function fetchAndCopyTranscriptData(meetingNoteId, token, refreshTok, meetingUrl) {
         if (!meetingNoteId) {
             console.error(`${LOG_PREFIX} Cannot fetch transcript without meetingNoteId.`);
             alert("Error: Could not determine Meeting ID.");
@@ -222,7 +231,7 @@
                     try {
                         const parsedResponse = JSON.parse(response.responseText);
                         if (parsedResponse.data && parsedResponse.data.meetingNote) {
-                            const formattedTranscript = formatTranscript(parsedResponse.data.meetingNote);
+                            const formattedTranscript = formatTranscript(parsedResponse.data.meetingNote, meetingUrl);
                             GM_setClipboard(formattedTranscript);
                             console.log(`${LOG_PREFIX} Formatted transcript copied to clipboard.`);
                             alert("Transcript copied to clipboard!");
@@ -302,9 +311,10 @@
                 console.log(`${LOG_PREFIX} Copy Transcript button clicked.`);
                 const authDetails = getAuthDetails();
                 const meetingNoteId = getMeetingNoteIdFromUrl();
+                const meetingUrl = window.location.href;
 
                 if (authDetails && meetingNoteId) {
-                    fetchAndCopyTranscriptData(meetingNoteId, authDetails.authToken, authDetails.refreshToken);
+                    fetchAndCopyTranscriptData(meetingNoteId, authDetails.authToken, authDetails.refreshToken, meetingUrl);
                 } else {
                     alert("Could not copy transcript. Missing Auth Tokens or Meeting ID. Check console.");
                     if (!meetingNoteId) console.error(`${LOG_PREFIX} Failed to get meetingNoteId for button click.`);
