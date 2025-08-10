@@ -3,6 +3,14 @@
   "categories": ["General", "EXAMPLE"],
   "changelog": [
     {
+      "category": "General",
+      "date": "2024-08-10",
+      "changes": [
+        "Improved reliability of meeting ID extraction from various URL formats.",
+        "Made the 'Copy Transcript' button more robust against site updates by cloning a native button."
+      ]
+    },
+    {
       "category": "EXAMPLE",
       "date": "2024-01-01",
       "changes": [

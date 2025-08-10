@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fireflies Copy Transcript & Share Link
 // @namespace    https://github.com/Elevate-Code
-// @version      1.0.1
+// @version      1.0.2
 // @description  Adds a "Copy Transcript" button to Fireflies.ai, allowing one-click copying of the full transcript in a clean, readable format.
 // @author       Elevate Code (Dimitri Sudomoin)
 // @match        https://app.fireflies.ai/*
@@ -87,6 +87,21 @@
     }
 
     function getMeetingNoteIdFromUrl() {
+        // Use a regex to find the ID after `/view/`.
+        // This is more robust and handles different URL structures.
+        const match = window.location.href.match(/view\/([^/?#]+)/);
+        if (match && match[1]) {
+            const potentialId = match[1];
+            // Handle the old format which looked like `some-name::actual-id`
+            if (potentialId.includes('::')) {
+                const idParts = potentialId.split('::');
+                return idParts.length > 1 ? idParts[1] : null;
+            }
+            // Handle the new format which seems to be just the ID
+            return potentialId;
+        }
+
+        // Fallback for the original implementation, just in case.
         const urlParts = window.location.href.split('/');
         const viewSegment = urlParts.find(part => part.includes('::'));
         if (viewSegment) {
@@ -275,39 +290,37 @@
 
         // This assignment will be managed by initializeActiveViewFeatures, which clears previous timers.
         currentWaitForButtonContainerTimer = waitForElement(downloadIconPathSelector, function(downloadIconPathElement) {
-            // downloadIconPathElement is the <path> element of the download icon.
+            // The download button is nested inside a wrapper button. We need to find and clone the wrapper.
+            const downloadButtonWrapper = downloadIconPathElement.closest('button:not([id])').parentElement;
 
-            // Find the outer wrapper button of the native download button.
-            // All control buttons (speed, play, download, reactions) share 'sc-c3c9f7eb-0 botkXK' as their outer pod class.
-            // Could also do something like `button:nth-child(5)`
-            const downloadButtonOuter = downloadIconPathElement.closest('button.sc-c3c9f7eb-0.botkXK');
-
-            if (!downloadButtonOuter || !downloadButtonOuter.parentElement) {
-                console.error(`${LOG_PREFIX} Could not find the native download button's wrapper or its parent using SVG path.`);
+            if (!downloadButtonWrapper || !downloadButtonWrapper.parentElement) {
+                console.error(`${LOG_PREFIX} Could not find the native download button's wrapper container.`);
                 return;
             }
 
-            const outerButton = document.createElement('button');
-            outerButton.id = COPY_BUTTON_ID; // Assign an ID for idempotency check
-            outerButton.setAttribute('type', 'button');
-            outerButton.setAttribute('data-state', 'closed');
-            // Use the same class as other control button wrappers (e.g., native download button's outer element)
-            outerButton.className = 'sc-c3c9f7eb-0 botkXK';
+            // Clone the entire button wrapper, including its nested structure and classes.
+            const copyButtonWrapper = downloadButtonWrapper.cloneNode(true);
+            copyButtonWrapper.id = COPY_BUTTON_ID;
 
-            const innerButton = document.createElement('button');
-            // Ensure inner button classes match the native equivalent's inner button for consistent styling
-            innerButton.className = 'sc-80373b0b-1 dOeQgS defaultNeutral sm single sc-db13e205-9 fGKSPn';
-            innerButton.setAttribute('aria-label', 'Copy Transcript');
-            innerButton.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                </svg>
-            `;
+            // Find the button and SVG inside our new clone to modify them.
+            const innerButton = copyButtonWrapper.querySelector('button');
+            if (innerButton) {
+                innerButton.setAttribute('aria-label', 'Copy Transcript');
+                innerButton.removeAttribute('aria-describedby'); // Remove original tooltip reference.
+            }
 
-            outerButton.appendChild(innerButton);
+            const svgElement = copyButtonWrapper.querySelector('svg');
+            if (svgElement) {
+                // By adding the stroke attributes directly to the path and rect, we ensure
+                // they are styled correctly, inheriting color from the parent CSS (currentColor).
+                svgElement.innerHTML = `
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></rect>
+                `;
+            }
 
-            outerButton.addEventListener('click', function() {
+            copyButtonWrapper.addEventListener('click', function(event) {
+                event.stopPropagation(); // Prevent any parent handlers from firing.
                 console.log(`${LOG_PREFIX} Copy Transcript button clicked.`);
                 const authDetails = getAuthDetails();
                 const meetingNoteId = getMeetingNoteIdFromUrl();
@@ -322,13 +335,10 @@
                 }
             });
 
-            // Insert the new button after the native download button.
-            if (downloadButtonOuter.nextSibling) {
-                downloadButtonOuter.parentElement.insertBefore(outerButton, downloadButtonOuter.nextSibling);
-            } else {
-                downloadButtonOuter.parentElement.appendChild(outerButton);
-            }
-            console.log(`${LOG_PREFIX} Copy Transcript button added to UI, positioned relative to the native download button.`);
+            // Insert the new button wrapper immediately after the original download button wrapper.
+            downloadButtonWrapper.insertAdjacentElement('afterend', copyButtonWrapper);
+
+            console.log(`${LOG_PREFIX} Copy Transcript button added to UI by cloning native button wrapper.`);
         });
     }
 
