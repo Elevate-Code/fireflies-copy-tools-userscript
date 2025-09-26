@@ -290,20 +290,23 @@
 
         // This assignment will be managed by initializeActiveViewFeatures, which clears previous timers.
         currentWaitForButtonContainerTimer = waitForElement(downloadIconPathSelector, function(downloadIconPathElement) {
-            // The download button is nested inside a wrapper button. We need to find and clone the wrapper.
-            const downloadButtonWrapper = downloadIconPathElement.closest('button:not([id])').parentElement;
+            const downloadButton = downloadIconPathElement.closest('button');
 
-            if (!downloadButtonWrapper || !downloadButtonWrapper.parentElement) {
+            if (!downloadButton || !downloadButton.parentElement) {
                 console.error(`${LOG_PREFIX} Could not find the native download button's wrapper container.`);
                 return;
             }
 
+            // The original button has a nested structure which is invalid HTML.
+            // We'll clone the parent element that seems to be the intended wrapper.
+            const buttonWrapperToClone = downloadButton.parentElement.tagName === 'BUTTON' ? downloadButton.parentElement : downloadButton;
+
             // Clone the entire button wrapper, including its nested structure and classes.
-            const copyButtonWrapper = downloadButtonWrapper.cloneNode(true);
+            const copyButtonWrapper = buttonWrapperToClone.cloneNode(true);
             copyButtonWrapper.id = COPY_BUTTON_ID;
 
             // Find the button and SVG inside our new clone to modify them.
-            const innerButton = copyButtonWrapper.querySelector('button');
+            const innerButton = copyButtonWrapper.querySelector('button') || copyButtonWrapper;
             if (innerButton) {
                 innerButton.setAttribute('aria-label', 'Copy Transcript');
                 innerButton.removeAttribute('aria-describedby'); // Remove original tooltip reference.
@@ -336,7 +339,7 @@
             });
 
             // Insert the new button wrapper immediately after the original download button wrapper.
-            downloadButtonWrapper.insertAdjacentElement('afterend', copyButtonWrapper);
+            buttonWrapperToClone.insertAdjacentElement('afterend', copyButtonWrapper);
 
             console.log(`${LOG_PREFIX} Copy Transcript button added to UI by cloning native button wrapper.`);
         });

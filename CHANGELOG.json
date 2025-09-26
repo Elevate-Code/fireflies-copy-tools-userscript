@@ -4,17 +4,17 @@
   "changelog": [
     {
       "category": "General",
-      "date": "2024-08-10",
+      "date": "2025-09-25",
       "changes": [
-        "Improved reliability of meeting ID extraction from various URL formats.",
-        "Made the 'Copy Transcript' button more robust against site updates by cloning a native button."
+        "Fixed the copy button not appearing by updating the script to support recent UI changes on Fireflies.ai."
       ]
     },
     {
-      "category": "EXAMPLE",
-      "date": "2024-01-01",
+      "category": "General",
+      "date": "2025-08-10",
       "changes": [
-        "PLACEHOLDER EXAMPLE"
+        "Improved reliability of meeting ID extraction from various URL formats.",
+        "Made the 'Copy Transcript' button more robust against site updates by cloning a native button."
       ]
     }
   ]
